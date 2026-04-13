@@ -1,0 +1,201 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-family: 'Archivo', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  
+  body {
+    @apply antialiased;
+    font-family: 'Archivo', -apple-system, BlinkMacSystemFont, sans-serif;
+    @apply bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+    @apply font-semibold tracking-tight;
+  }
+  
+  code, pre {
+    font-family: 'JetBrains Mono', monospace;
+  }
+  
+  ::selection {
+    @apply bg-blue-500/30 text-blue-900 dark:text-blue-100;
+  }
+}
+
+@layer components {
+  /* 玻璃态效果 */
+  .glass {
+    @apply bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/20 dark:border-slate-700/30;
+  }
+  
+  .glass-light {
+    @apply bg-white/40 dark:bg-slate-900/40 backdrop-blur-lg;
+  }
+  
+  /* 按钮样式 */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-200;
+    @apply bg-blue-500 text-white hover:bg-blue-600 active:scale-[0.98];
+    @apply shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30;
+  }
+  
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-200;
+    @apply bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200;
+    @apply hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-[0.98];
+  }
+  
+  /* 卡片悬浮效果 */
+  .card-hover {
+    @apply transition-all duration-300;
+    @apply hover:shadow-xl hover:shadow-blue-500/10;
+    @apply hover:-translate-y-1;
+  }
+  
+  /* 渐变文字 */
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #2563eb 0%, #7c3aed 50%, #db2777 100%);
+  }
+  
+  /* 标签样式 */
+  .tag {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+    @apply bg-blue-100/80 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400;
+    @apply backdrop-blur-sm transition-all duration-200;
+    @apply hover:bg-blue-200/80 dark:hover:bg-blue-900/50;
+  }
+}
+
+@layer utilities {
+  /* 动画 */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  .animate-pulse-slow {
+    animation: pulse-slow 3s ease-in-out infinite;
+  }
+  
+  @keyframes pulse-slow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+}
+
+/* Markdown 内容样式 */
+.markdown-content {
+  @apply text-slate-700 dark:text-slate-300 leading-relaxed;
+}
+
+.markdown-content h1 {
+  @apply text-3xl font-bold mt-8 mb-4 text-slate-900 dark:text-white;
+}
+
+.markdown-content h2 {
+  @apply text-2xl font-bold mt-8 mb-4 text-slate-900 dark:text-white;
+}
+
+.markdown-content h3 {
+  @apply text-xl font-bold mt-6 mb-3 text-slate-900 dark:text-white;
+}
+
+.markdown-content h4 {
+  @apply text-lg font-bold mt-4 mb-2 text-slate-900 dark:text-white;
+}
+
+.markdown-content p {
+  @apply mb-4 text-base leading-7;
+}
+
+.markdown-content ul, 
+.markdown-content ol {
+  @apply mb-4 pl-6;
+}
+
+.markdown-content ul {
+  @apply list-disc;
+}
+
+.markdown-content ol {
+  @apply list-decimal;
+}
+
+.markdown-content li {
+  @apply mb-2;
+}
+
+.markdown-content blockquote {
+  @apply border-l-4 border-blue-500 pl-4 py-2 my-4;
+  @apply bg-blue-50/50 dark:bg-blue-900/10;
+  @apply text-slate-600 dark:text-slate-400 italic;
+}
+
+.markdown-content hr {
+  @apply my-8 border-slate-200 dark:border-slate-700;
+}
+
+.markdown-content table {
+  @apply w-full mb-4 border-collapse;
+}
+
+.markdown-content th,
+.markdown-content td {
+  @apply border border-slate-200 dark:border-slate-700 px-4 py-2;
+}
+
+.markdown-content th {
+  @apply bg-slate-50 dark:bg-slate-800 font-semibold;
+}
+
+.markdown-content img {
+  @apply rounded-xl my-6 max-w-full shadow-lg;
+  @apply hover:shadow-xl transition-shadow duration-300;
+}
+
+/* 代码块样式优化 */
+.markdown-content pre {
+  @apply rounded-xl overflow-hidden my-6;
+  @apply shadow-lg;
+}
+
+.markdown-content code {
+  @apply font-mono text-sm;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-100 dark:bg-slate-900;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-700 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400 dark:bg-slate-600;
+}
+
+/* Focus styles */
+*:focus-visible {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+  @apply dark:ring-offset-slate-900;
+}

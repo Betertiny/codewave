@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  # ==================== Database ====================
+  postgres:
+    image: postgres:15-alpine
+    container_name: blog-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Why123456}
+      POSTGRES_DB: ${POSTGRES_DB:-blog}
+      TZ: Asia/Shanghai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # 初始化脚本 (可选)
+      # - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-blog}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - blog-network
+
+  # ==================== Backend API ====================
+  backend:
+    build:
+      context: ./blog-backend
+      dockerfile: Dockerfile
+    container_name: blog-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-Why123456}@postgres:5432/${POSTGRES_DB:-blog}
+      PORT: ${BACKEND_PORT:-3000}
+      NODE_ENV: ${NODE_ENV:-production}
+      # 阿里云 OSS (可选)
+      # OSS_ACCESS_KEY_ID: ${OSS_ACCESS_KEY_ID}
+      # OSS_ACCESS_KEY_SECRET: ${OSS_ACCESS_KEY_SECRET}
+      # OSS_BUCKET: ${OSS_BUCKET}
+      # OSS_REGION: ${OSS_REGION}
+      # USE_OSS: ${USE_OSS:-false}
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/posts"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - blog-network
+
+  # ==================== Frontend (User) ====================
+  frontend:
+    build:
+      context: ./blog-frontend
+      dockerfile: Dockerfile
+    container_name: blog-frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://${BACKEND_HOST:-localhost}:${BACKEND_PORT:-3000}/api
+      NODE_ENV: ${NODE_ENV:-production}
+    ports:
+      - "${FRONTEND_PORT:-3002}:3000"
+    depends_on:
+      - backend
+    networks:
+      - blog-network
+
+  # ==================== Admin Dashboard ====================
+  admin:
+    build:
+      context: ./blog-admin
+      dockerfile: Dockerfile
+    container_name: blog-admin
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://${BACKEND_HOST:-localhost}:${BACKEND_PORT:-3000}/api
+      NODE_ENV: ${NODE_ENV:-production}
+    ports:
+      - "${ADMIN_PORT:-3001}:3003"
+    depends_on:
+      - backend
+    networks:
+      - blog-network
+
+# ==================== Networks ====================
+networks:
+  blog-network:
+    driver: bridge
+
+# ==================== Volumes ====================
+volumes:
+  postgres_data:
+    driver: local

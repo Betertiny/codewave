@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "assets": ["**/*.prisma"],
+    "watchAssets": true,
+    "webpack": true,
+    "tsConfigPath": "tsconfig.build.json"
+  },
+  "generateOptions": {
+    "spec": {
+      "default": true,
+      "config": {
+        "skipStyleIndent": true,
+        "width": 100
+      }
+    }
+  }
+}

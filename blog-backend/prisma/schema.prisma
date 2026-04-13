@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 分类模型
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  slug      String    @unique
+  icon      String?
+  color     String?
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  // 关联
+  posts     Post[]
+
+  @@index([slug])
+  @@index([sortOrder])
+}
+
+// 文章模型
+model Post {
+  id          Int      @id @default(autoincrement())
+  title       String
+  slug        String   @unique
+  excerpt     String?
+  content     String   @db.Text
+  coverImage  String?
+  viewCount   Int      @default(0)
+  published   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 关联
+  categoryId  Int?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  tags        PostTag[]
+
+  @@index([slug])
+  @@index([createdAt])
+  @@index([published])
+  @@index([categoryId])
+}
+
+// 标签模型
+model Tag {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  slug      String    @unique
+  color     String?
+  createdAt DateTime  @default(now())
+
+  // 关联
+  posts     PostTag[]
+
+  @@index([slug])
+}
+
+// 文章-标签关联表
+model PostTag {
+  postId    Int
+  tagId     Int
+  createdAt DateTime @default(now())
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+}
+
+// 关于页面模型
+model About {
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String    @db.Text
+  avatar      String?
+  socialLinks Json?     // 存储社交链接数组
+  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime  @default(now())
+}
+
+// 上传文件记录
+model File {
+  id          Int       @id @default(autoincrement())
+  filename    String
+  originalname String
+  mimetype    String
+  size        Int
+  url         String
+  createdAt   DateTime  @default(now())
+}
