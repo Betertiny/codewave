@@ -9,6 +9,8 @@ import { UploadController } from './upload.controller';
       limits: {
         fileSize: 5 * 1024 * 1024, // 5MB
       },
+      // 使用内存存储，以便在保存前进行安全验证
+      storage: undefined, // 默认内存存储
     }),
   ],
   controllers: [UploadController],

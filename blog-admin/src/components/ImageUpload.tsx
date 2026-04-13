@@ -3,7 +3,8 @@
 import { useState, useRef } from 'react';
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+// 修复：确保使用正确的 API 地址
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 interface ImageUploadProps {
   value?: string;
@@ -58,18 +59,22 @@ export default function ImageUpload({
       const formData = new FormData();
       formData.append('image', file);
 
+      console.log('上传到:', `${API_BASE_URL}/upload/image`);
+      
       const res = await fetch(`${API_BASE_URL}/upload/image`, {
         method: 'POST',
         body: formData,
       });
 
+      const data = await res.json();
+      
       if (!res.ok) {
-        throw new Error('上传失败');
+        throw new Error(data.message || data.error || '上传失败');
       }
 
-      const data = await res.json();
       onChange(data.url);
     } catch (err: any) {
+      console.error('上传错误:', err);
       setError(err.message || '上传失败');
     } finally {
       setUploading(false);
