@@ -8,9 +8,12 @@ export class PostsService {
   constructor(private prisma: PrismaService) {}
 
   async create(createPostDto: CreatePostDto): Promise<any> {
-    // 检查 slug 是否已存在
-    const existing = await this.prisma.post.findUnique({
-      where: { slug: createPostDto.slug },
+    // 检查 slug 是否已存在（排除已软删除的文章）
+    const existing = await this.prisma.post.findFirst({
+      where: { 
+        slug: createPostDto.slug,
+        deletedAt: null, // 只检查未删除的文章
+      },
     });
     if (existing) {
       throw new ConflictException('该 slug 已存在');
@@ -55,7 +58,7 @@ export class PostsService {
 
     const where: any = {
       published: true,
-      deletedAt: null, // 只返回未删除的文章
+      deletedAt: undefined, // 只返回未删除的文章 - Prisma 会自动处理为 "不存在"
     };
 
     if (tag) {
@@ -277,19 +280,21 @@ export class PostsService {
       totalViews,
       deletedPosts
     ] = await Promise.all([
-      this.prisma.post.count({ where: { deletedAt: null } }),
-      this.prisma.post.count({ where: { published: true, deletedAt: null } }),
+      this.prisma.post.count({ where: {} }), // 所有文章
+      this.prisma.post.count({ where: { published: true } }),
       this.prisma.post.aggregate({
-        where: { deletedAt: null },
         _sum: { viewCount: true },
       }),
       this.prisma.post.count({ where: { deletedAt: { not: null } } }),
     ]);
 
+    // 排除已删除的
+    const activePosts = totalPosts - deletedPosts;
+
     return {
-      totalPosts,
+      totalPosts: activePosts,
       publishedPosts,
-      draftPosts: totalPosts - publishedPosts,
+      draftPosts: activePosts - publishedPosts,
       totalViews: totalViews._sum.viewCount || 0,
       deletedPosts,
     };
