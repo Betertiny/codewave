@@ -1,5 +1,11 @@
 # 个人博客系统 (Blog CMS) - CodeWave
 
+[![GitHub stars](https://img.shields.io/github/stars/Betertiny/codewave)](https://github.com/Betertiny/codewave)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub last commit](https://img.shields.io/github/last-commit/Betertiny/codewave)](https://github.com/Betertiny/codewave/commits/main)
+
+🔗 **GitHub**: https://github.com/Betertiny/codewave
+
 基于 Next.js + NestJS + Prisma + PostgreSQL 的现代化全栈博客系统。
 
 ## ⚠️ 安全提醒
