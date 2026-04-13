@@ -15,24 +15,44 @@ export class AboutService {
         data: {
           title: '关于我',
           content: '# 关于\n\n欢迎来到我的博客！',
-          socialLinks: [],
+          socialLinks: { github: '', twitter: '', email: '' },
+          skills: '[]',
         },
       });
     }
 
-    return about;
+    // 解析技能 JSON
+    const result: any = { ...about };
+    if (result.skills && typeof result.skills === 'string') {
+      try {
+        result.skills = JSON.parse(result.skills);
+      } catch {
+        result.skills = [];
+      }
+    } else if (!result.skills) {
+      result.skills = [];
+    }
+
+    return result;
   }
 
   async update(updateAboutDto: UpdateAboutDto) {
     const about = await this.prisma.about.findFirst();
 
+    // 处理技能数组 - 转换为 JSON 字符串存储
+    const data: any = { ...updateAboutDto };
+    if (data.skills && Array.isArray(data.skills)) {
+      data.skills = JSON.stringify(data.skills);
+    }
+
     if (!about) {
       // 创建
       return this.prisma.about.create({
         data: {
-          ...updateAboutDto,
-          title: updateAboutDto.title || '关于我',
-          content: updateAboutDto.content || '',
+          ...data,
+          title: data.title || '关于我',
+          content: data.content || '',
+          skills: data.skills || '[]',
         },
       });
     }
@@ -40,7 +60,7 @@ export class AboutService {
     // 更新
     return this.prisma.about.update({
       where: { id: about.id },
-      data: updateAboutDto,
+      data,
     });
   }
 }

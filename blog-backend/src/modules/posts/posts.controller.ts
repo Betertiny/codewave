@@ -30,6 +30,18 @@ export class PostsController {
     return this.postsService.findAll(query);
   }
 
+  @Get('stats')
+  @ApiOperation({ summary: '获取文章统计数据' })
+  getStats() {
+    return this.postsService.getStats();
+  }
+
+  @Get('deleted')
+  @ApiOperation({ summary: '获取回收站文章列表' })
+  findDeleted() {
+    return this.postsService.findDeleted();
+  }
+
   @Get(':slug')
   @ApiOperation({ summary: '获取文章详情' })
   findOne(@Param('slug') slug: string) {
@@ -42,9 +54,27 @@ export class PostsController {
     return this.postsService.update(+id, updatePostDto);
   }
 
+  @Post(':id/soft-delete')
+  @ApiOperation({ summary: '软删除文章 (移入回收站)' })
+  softDelete(@Param('id') id: string) {
+    return this.postsService.softDelete(+id);
+  }
+
+  @Post(':id/restore')
+  @ApiOperation({ summary: '恢复已删除的文章' })
+  restore(@Param('id') id: string) {
+    return this.postsService.restore(+id);
+  }
+
   @Delete(':id')
-  @ApiOperation({ summary: '删除文章' })
+  @ApiOperation({ summary: '永久删除文章' })
   remove(@Param('id') id: string) {
     return this.postsService.remove(+id);
+  }
+
+  @Delete('deleted/all')
+  @ApiOperation({ summary: '清空回收站' })
+  clearRecycleBin() {
+    return this.postsService.clearRecycleBin();
   }
 }

@@ -7,18 +7,26 @@ import { formatDateTime } from '@/lib/utils';
 import { Modal } from '@/components/Modal';
 import { Toast, useToast } from '@/components/Toast';
 import { Loading } from '@/components/Loading';
-import { Plus, Pencil, Trash2, Eye, EyeOff, Search, FileText, ExternalLink } from 'lucide-react';
+import ImageUpload from '@/components/ImageUpload';
+import { 
+  Plus, Pencil, Trash2, Eye, EyeOff, Search, FileText, 
+  RotateCcw, Trash, CheckSquare, Square, AlertTriangle, Clock,
+  Calendar, X, Check
+} from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { logOperation } from '@/store/auth';
 
 export default function PostsPage() {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [deletedPosts, setDeletedPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [showRecycleBin, setShowRecycleBin] = useState(false);
+  const [selectedPosts, setSelectedPosts] = useState<number[]>([]);
   const { toast, showToast, hideToast } = useToast();
 
   const [formData, setFormData] = useState<CreatePostDto>({
@@ -28,12 +36,14 @@ export default function PostsPage() {
     content: '',
     coverImage: '',
     published: false,
+    scheduledAt: undefined,
     categoryId: undefined,
     tagIds: [],
   });
 
   useEffect(() => {
     fetchPosts();
+    fetchDeletedPosts();
     fetchTags();
     fetchCategories();
   }, []);
@@ -46,6 +56,15 @@ export default function PostsPage() {
       showToast('获取文章列表失败', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDeletedPosts = async () => {
+    try {
+      const res = await postsApi.getDeletedPosts();
+      setDeletedPosts(res.data || []);
+    } catch (error) {
+      console.error('获取回收站失败:', error);
     }
   };
 
@@ -82,6 +101,7 @@ export default function PostsPage() {
       setIsModalOpen(false);
       resetForm();
       fetchPosts();
+      fetchDeletedPosts();
     } catch (error: any) {
       showToast(error.message || '操作失败', 'error');
     }
@@ -96,21 +116,96 @@ export default function PostsPage() {
       content: post.content,
       coverImage: post.coverImage || '',
       published: post.published,
+      scheduledAt: post.scheduledAt || undefined,
       categoryId: post.categoryId,
       tagIds: post.tags?.map(t => t.id) || [],
     });
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('确定要删除这篇文章吗？')) return;
+  // 软删除 - 移入回收站
+  const handleSoftDelete = async (id: number) => {
+    if (!confirm('确定要将文章移入回收站吗？')) return;
+    try {
+      await postsApi.softDeletePost(id);
+      logOperation('移入回收站', '文章', id.toString());
+      showToast('已移入回收站', 'success');
+      fetchPosts();
+      fetchDeletedPosts();
+    } catch (error: any) {
+      showToast(error.message || '操作失败', 'error');
+    }
+  };
+
+  // 批量软删除
+  const handleBatchSoftDelete = async () => {
+    if (selectedPosts.length === 0) return;
+    if (!confirm(`确定要将 ${selectedPosts.length} 篇文章移入回收站吗？`)) return;
+    try {
+      await Promise.all(selectedPosts.map(id => postsApi.softDeletePost(id)));
+      logOperation('批量移入回收站', '文章', selectedPosts.join(','), `${selectedPosts.length} 篇`);
+      showToast(`已移入回收站`, 'success');
+      setSelectedPosts([]);
+      fetchPosts();
+      fetchDeletedPosts();
+    } catch (error: any) {
+      showToast(error.message || '操作失败', 'error');
+    }
+  };
+
+  // 恢复文章
+  const handleRestore = async (id: number) => {
+    try {
+      await postsApi.restorePost(id);
+      logOperation('恢复', '文章', id.toString());
+      showToast('文章已恢复', 'success');
+      fetchPosts();
+      fetchDeletedPosts();
+    } catch (error: any) {
+      showToast(error.message || '恢复失败', 'error');
+    }
+  };
+
+  // 批量恢复
+  const handleBatchRestore = async () => {
+    if (selectedPosts.length === 0) return;
+    if (!confirm(`确定要恢复 ${selectedPosts.length} 篇文章吗？`)) return;
+    try {
+      await Promise.all(selectedPosts.map(id => postsApi.restorePost(id)));
+      logOperation('批量恢复', '文章', selectedPosts.join(','), `${selectedPosts.length} 篇`);
+      showToast(`已恢复`, 'success');
+      setSelectedPosts([]);
+      fetchPosts();
+      fetchDeletedPosts();
+    } catch (error: any) {
+      showToast(error.message || '操作失败', 'error');
+    }
+  };
+
+  // 彻底删除
+  const handlePermanentDelete = async (id: number) => {
+    if (!confirm('警告：此操作不可恢复！确定要永久删除吗？')) return;
     try {
       await postsApi.deletePost(id);
-      logOperation('删除', '文章', id.toString());
-      showToast('文章删除成功', 'success');
+      logOperation('永久删除', '文章', id.toString());
+      showToast('已永久删除', 'success');
       fetchPosts();
+      fetchDeletedPosts();
     } catch (error: any) {
       showToast(error.message || '删除失败', 'error');
+    }
+  };
+
+  // 清空回收站
+  const handleClearRecycleBin = async () => {
+    if (!confirm('警告：此操作将永久删除回收站中的所有文章！确定继续吗？')) return;
+    try {
+      const res = await postsApi.clearRecycleBin();
+      logOperation('清空回收站', '文章', undefined, `删除了 ${res.count} 篇`);
+      showToast(`已清空回收站，删除了 ${res.count} 篇文章`, 'success');
+      fetchDeletedPosts();
+    } catch (error: any) {
+      showToast(error.message || '操作失败', 'error');
     }
   };
 
@@ -134,6 +229,7 @@ export default function PostsPage() {
       content: '',
       coverImage: '',
       published: false,
+      scheduledAt: undefined,
       categoryId: undefined,
       tagIds: [],
     });
@@ -148,10 +244,43 @@ export default function PostsPage() {
       .trim();
   };
 
+  const toggleSelectPost = (id: number) => {
+    setSelectedPosts(prev => 
+      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    const currentList = showRecycleBin ? deletedPosts : posts;
+    if (selectedPosts.length === currentList.length) {
+      setSelectedPosts([]);
+    } else {
+      setSelectedPosts(currentList.map(p => p.id));
+    }
+  };
+
   const filteredPosts = posts.filter(post =>
     post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     post.slug.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const filteredDeleted = deletedPosts.filter(post =>
+    post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    post.slug.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // 格式化定时发布时间
+  const formatScheduledTime = (scheduledAt: string | null | undefined) => {
+    if (!scheduledAt) return null;
+    const date = new Date(scheduledAt);
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   if (loading) return <Loading />;
 
@@ -160,29 +289,72 @@ export default function PostsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="page-title">文章管理</h1>
-          <p className="text-gray-500 text-sm mt-1">共 {posts.length} 篇文章</p>
+          <h1 className="page-title">{showRecycleBin ? '回收站' : '文章管理'}</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            {showRecycleBin 
+              ? `共 ${deletedPosts.length} 篇已删除文章`
+              : `共 ${posts.length} 篇文章`
+            }
+          </p>
         </div>
-        <button
-          onClick={() => { resetForm(); setIsModalOpen(true); }}
-          className="btn btn-primary"
-        >
-          <Plus className="w-4 h-4" />
-          新建文章
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => { setShowRecycleBin(!showRecycleBin); setSelectedPosts([]); }}
+            className={`btn ${showRecycleBin ? 'btn-secondary' : 'btn-outline'}`}
+          >
+            <Trash className="w-4 h-4" />
+            {showRecycleBin ? '返回文章列表' : '回收站'}
+            {deletedPosts.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-xs">
+                {deletedPosts.length}
+              </span>
+            )}
+          </button>
+          {!showRecycleBin && (
+            <button
+              onClick={() => { resetForm(); setIsModalOpen(true); }}
+              className="btn btn-primary"
+            >
+              <Plus className="w-4 h-4" />
+              新建文章
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Search */}
+      {/* Search & Actions */}
       <div className="card p-4 mb-5">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="搜索文章..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="input pl-10"
-          />
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder={showRecycleBin ? "搜索回收站..." : "搜索文章..."}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="input pl-10"
+            />
+          </div>
+          
+          {selectedPosts.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">已选择 {selectedPosts.length} 篇</span>
+              {showRecycleBin ? (
+                <>
+                  <button onClick={handleBatchRestore} className="btn btn-sm btn-primary">
+                    <RotateCcw className="w-4 h-4" /> 恢复
+                  </button>
+                  <button onClick={handleClearRecycleBin} className="btn btn-sm btn-danger">
+                    <Trash className="w-4 h-4" /> 清空
+                  </button>
+                </>
+              ) : (
+                <button onClick={handleBatchSoftDelete} className="btn btn-sm btn-danger">
+                  <Trash className="w-4 h-4" /> 批量删除
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -191,26 +363,61 @@ export default function PostsPage() {
         <table className="table">
           <thead>
             <tr>
+              <th className="w-10">
+                <button 
+                  onClick={toggleSelectAll}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  {selectedPosts.length === (showRecycleBin ? deletedPosts.length : posts.length) && 
+                   selectedPosts.length > 0 ? (
+                    <CheckSquare className="w-5 h-5" />
+                  ) : (
+                    <Square className="w-5 h-5" />
+                  )}
+                </button>
+              </th>
               <th>标题</th>
               <th>Slug</th>
               <th>状态</th>
               <th>分类</th>
-              <th>更新时间</th>
+              {showRecycleBin ? <th>删除时间</th> : <th>更新时间</th>}
               <th className="text-right">操作</th>
             </tr>
           </thead>
           <tbody>
-            {filteredPosts.map((post) => (
-              <tr key={post.id}>
+            {(showRecycleBin ? filteredDeleted : filteredPosts).map((post) => (
+              <tr key={post.id} className={selectedPosts.includes(post.id) ? 'bg-blue-50' : ''}>
+                <td>
+                  <button 
+                    onClick={() => toggleSelectPost(post.id)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    {selectedPosts.includes(post.id) ? (
+                      <CheckSquare className="w-5 h-5 text-blue-500" />
+                    ) : (
+                      <Square className="w-5 h-5" />
+                    )}
+                  </button>
+                </td>
                 <td>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-gray-400" />
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
+                      {post.coverImage ? (
+                        <img src={post.coverImage} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <FileText className="w-5 h-5 text-gray-400" />
+                      )}
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{post.title}</p>
                       {post.excerpt && (
                         <p className="text-sm text-gray-500 truncate max-w-xs">{post.excerpt}</p>
+                      )}
+                      {post.scheduledAt && !post.published && (
+                        <p className="text-xs text-orange-500 flex items-center gap-1 mt-1">
+                          <Clock className="w-3 h-3" />
+                          定时发布: {formatScheduledTime(post.scheduledAt)}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -219,9 +426,20 @@ export default function PostsPage() {
                   <span className="text-sm text-gray-500 font-mono">{post.slug}</span>
                 </td>
                 <td>
-                  <span className={`badge ${post.published ? 'badge-success' : 'badge-draft'}`}>
-                    {post.published ? '已发布' : '草稿'}
-                  </span>
+                  {showRecycleBin ? (
+                    <span className="badge badge-draft">已删除</span>
+                  ) : (
+                    <>
+                      <span className={`badge ${post.published ? 'badge-success' : 'badge-draft'}`}>
+                        {post.published ? '已发布' : '草稿'}
+                      </span>
+                      {post.viewCount > 0 && (
+                        <span className="ml-2 text-xs text-gray-400 flex items-center gap-1">
+                          <Eye className="w-3 h-3" /> {post.viewCount}
+                        </span>
+                      )}
+                    </>
+                  )}
                 </td>
                 <td>
                   {post.category ? (
@@ -231,37 +449,60 @@ export default function PostsPage() {
                   )}
                 </td>
                 <td>
-                  <span className="text-sm text-gray-500">{formatDateTime(post.updatedAt)}</span>
+                  <span className="text-sm text-gray-500">
+                    {formatDateTime(showRecycleBin ? post.deletedAt! : post.updatedAt)}
+                  </span>
                 </td>
                 <td>
                   <div className="flex items-center justify-end gap-1">
-                    <button
-                      onClick={() => handleTogglePublish(post)}
-                      className="btn btn-icon"
-                      title={post.published ? '取消发布' : '发布'}
-                    >
-                      {post.published ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                    <button
-                      onClick={() => handleEdit(post)}
-                      className="btn btn-icon"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(post.id)}
-                      className="btn btn-icon text-red-500 hover:text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {showRecycleBin ? (
+                      <>
+                        <button
+                          onClick={() => handleRestore(post.id)}
+                          className="btn btn-icon text-green-600 hover:bg-green-50"
+                          title="恢复"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handlePermanentDelete(post.id)}
+                          className="btn btn-icon text-red-500 hover:text-red-600 hover:bg-red-50"
+                          title="永久删除"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleTogglePublish(post)}
+                          className="btn btn-icon"
+                          title={post.published ? '取消发布' : '发布'}
+                        >
+                          {post.published ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => handleEdit(post)}
+                          className="btn btn-icon"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleSoftDelete(post.id)}
+                          className="btn btn-icon text-red-500 hover:text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>
             ))}
-            {filteredPosts.length === 0 && (
+            {(showRecycleBin ? filteredDeleted : filteredPosts).length === 0 && (
               <tr>
-                <td colSpan={6} className="text-center py-12 text-gray-500">
-                  暂无文章，点击右上角新建
+                <td colSpan={7} className="text-center py-12 text-gray-500">
+                  {showRecycleBin ? '回收站为空' : '暂无文章，点击右上角新建'}
                 </td>
               </tr>
             )}
@@ -314,13 +555,10 @@ export default function PostsPage() {
           </div>
 
           <div className="form-group">
-            <label className="label">封面图片 URL</label>
-            <input
-              type="url"
+            <label className="label">封面图片</label>
+            <ImageUpload
               value={formData.coverImage}
-              onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
-              className="input"
-              placeholder="https://..."
+              onChange={(url) => setFormData({ ...formData, coverImage: url })}
             />
           </div>
 
@@ -375,7 +613,8 @@ export default function PostsPage() {
             />
           </div>
 
-          <div className="flex items-center gap-4 pt-4 border-t">
+          {/* 发布设置 */}
+          <div className="p-4 bg-gray-50 rounded-lg space-y-4">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -383,8 +622,31 @@ export default function PostsPage() {
                 onChange={(e) => setFormData({ ...formData, published: e.target.checked })}
                 className="w-4 h-4 rounded"
               />
-              <span className="text-sm">立即发布</span>
+              <span className="text-sm font-medium">立即发布</span>
             </label>
+            
+            {!formData.published && (
+              <div className="form-group mb-0">
+                <label className="label flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  定时发布
+                </label>
+                <input
+                  type="datetime-local"
+                  value={formData.scheduledAt || ''}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    scheduledAt: e.target.value || undefined,
+                    published: false 
+                  })}
+                  className="input"
+                  min={new Date().toISOString().slice(0, 16)}
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  设置发布时间后，文章将在指定时间自动发布
+                </p>
+              </div>
+            )}
           </div>
 
           {formData.content && (

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth';
 import {
+  LayoutDashboard,
   FileText,
   Tags,
   FolderTree,
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 
 const navItems = [
+  { href: '/', label: '仪表盘', icon: LayoutDashboard },
   { href: '/posts', label: '文章', icon: FileText },
   { href: '/tags', label: '标签', icon: Tags },
   { href: '/categories', label: '分类', icon: FolderTree },
@@ -35,15 +37,26 @@ export function Sidebar() {
 
   return (
     <aside className="w-56 min-h-screen bg-white border-r border-gray-200 flex flex-col">
-      {/* Logo */}
+      {/* CodeWave Logo */}
       <div className="px-6 py-5 border-b border-gray-100">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-900 to-gray-700 flex items-center justify-center">
-            <FileText className="w-4 h-4 text-white" />
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+            {/* CodeWave Waves icon */}
+            <svg viewBox="0 0 24 24" className="w-5 h-5 text-white">
+              <defs>
+                <linearGradient id="sidebarWaveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="rgba(255,255,255,0.9)" />
+                  <stop offset="100%" stopColor="rgba(255,255,255,0.5)" />
+                </linearGradient>
+              </defs>
+              <path d="M3 13 Q6 10, 9 13 T15 13 T21 13" fill="none" stroke="url(#sidebarWaveGrad)" strokeWidth="2" strokeLinecap="round" />
+              <path d="M3 17 Q6 14, 9 17 T15 17 T21 17" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M3 9 Q6 6, 9 9 T15 9 T21 9" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
           </div>
           <div>
-            <h1 className="text-sm font-semibold text-gray-900">博客管理</h1>
-            <p className="text-xs text-gray-400">内容管理系统</p>
+            <h1 className="text-sm font-semibold text-gray-900">CodeWave</h1>
+            <p className="text-xs text-gray-400">博客管理后台</p>
           </div>
         </div>
       </div>

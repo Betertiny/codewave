@@ -66,7 +66,27 @@ export const postsApi = {
     return api.patch(`/posts/${id}`, data);
   },
 
-  // 删除文章
+  // 软删除文章 (移入回收站)
+  softDeletePost: async (id: number): Promise<void> => {
+    return api.post(`/posts/${id}/soft-delete`);
+  },
+
+  // 恢复文章
+  restorePost: async (id: number): Promise<Post> => {
+    return api.post(`/posts/${id}/restore`);
+  },
+
+  // 获取回收站文章列表
+  getDeletedPosts: async (): Promise<{ data: Post[] }> => {
+    return api.get('/posts/deleted');
+  },
+
+  // 清空回收站
+  clearRecycleBin: async (): Promise<{ count: number }> => {
+    return api.delete('/posts/deleted/all');
+  },
+
+  // 永久删除文章
   deletePost: async (id: number): Promise<void> => {
     return api.delete(`/posts/${id}`);
   },

@@ -55,6 +55,7 @@ export class PostsService {
 
     const where: any = {
       published: true,
+      deletedAt: null, // 只返回未删除的文章
     };
 
     if (tag) {
@@ -111,8 +112,21 @@ export class PostsService {
       },
     });
 
-    if (!post) {
+    if (!post || post.deletedAt) {
       throw new NotFoundException('文章不存在');
+    }
+
+    // 检查定时发布
+    if (!post.published && post.scheduledAt) {
+      if (new Date() >= post.scheduledAt) {
+        // 自动发布
+        await this.prisma.post.update({
+          where: { id: post.id },
+          data: { published: true, scheduledAt: null },
+        });
+        post.published = true;
+        post.scheduledAt = null;
+      }
     }
 
     // 增加浏览量
@@ -170,6 +184,49 @@ export class PostsService {
     return this.formatPost(updated);
   }
 
+  /**
+   * 软删除文章
+   */
+  async softDelete(id: number): Promise<void> {
+    const post = await this.prisma.post.findUnique({ where: { id } });
+    if (!post) {
+      throw new NotFoundException('文章不存在');
+    }
+
+    await this.prisma.post.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  /**
+   * 恢复已删除的文章
+   */
+  async restore(id: number): Promise<any> {
+    const post = await this.prisma.post.findUnique({ where: { id } });
+    if (!post) {
+      throw new NotFoundException('文章不存在');
+    }
+
+    const restored = await this.prisma.post.update({
+      where: { id },
+      data: { deletedAt: null },
+      include: {
+        category: true,
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    return this.formatPost(restored);
+  }
+
+  /**
+   * 彻底删除文章
+   */
   async remove(id: number): Promise<void> {
     const post = await this.prisma.post.findUnique({ where: { id } });
     if (!post) {
@@ -177,6 +234,65 @@ export class PostsService {
     }
 
     await this.prisma.post.delete({ where: { id } });
+  }
+
+  /**
+   * 获取回收站文章列表
+   */
+  async findDeleted(): Promise<any[]> {
+    const posts = await this.prisma.post.findMany({
+      where: { deletedAt: { not: null } },
+      orderBy: { deletedAt: 'desc' },
+      include: {
+        category: true,
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    return posts.map((p) => this.formatPost(p));
+  }
+
+  /**
+   * 清空回收站
+   */
+  async clearRecycleBin(): Promise<{ count: number }> {
+    const result = await this.prisma.post.deleteMany({
+      where: { deletedAt: { not: null } },
+    });
+
+    return { count: result.count };
+  }
+
+  /**
+   * 获取统计数据（用于仪表盘）
+   */
+  async getStats(): Promise<any> {
+    const [
+      totalPosts,
+      publishedPosts,
+      totalViews,
+      deletedPosts
+    ] = await Promise.all([
+      this.prisma.post.count({ where: { deletedAt: null } }),
+      this.prisma.post.count({ where: { published: true, deletedAt: null } }),
+      this.prisma.post.aggregate({
+        where: { deletedAt: null },
+        _sum: { viewCount: true },
+      }),
+      this.prisma.post.count({ where: { deletedAt: { not: null } } }),
+    ]);
+
+    return {
+      totalPosts,
+      publishedPosts,
+      draftPosts: totalPosts - publishedPosts,
+      totalViews: totalViews._sum.viewCount || 0,
+      deletedPosts,
+    };
   }
 
   private formatPost(post: any) {

@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { aboutApi } from '@/lib/api';
-import type { About } from '@/types';
+import type { About, Skill } from '@/types';
 import { Toast, useToast } from '@/components/Toast';
 import { Loading } from '@/components/Loading';
-import { Save, Eye, User, Globe, Mail, Github } from 'lucide-react';
+import ImageUpload from '@/components/ImageUpload';
+import { Save, Eye, User, Globe, Mail, Github, Plus, X, Code } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 export default function AboutPage() {
@@ -35,12 +36,51 @@ export default function AboutPage() {
     setSaving(true);
     try {
       await aboutApi.updateAbout(about);
-      logOperation('更新', '关于页面', undefined, `标题: ${about.title || '未设置'}`);
       showToast('保存成功', 'success');
     } catch (error: any) {
       showToast(error.message || '保存失败', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // 技能管理
+  const addSkill = () => {
+    const newSkill: Skill = { name: '', level: 50, category: '技术' };
+    setAbout({
+      ...about!,
+      skills: [...(about?.skills || []), newSkill],
+    });
+  };
+
+  const updateSkill = (index: number, updates: Partial<Skill>) => {
+    if (!about?.skills) return;
+    const newSkills = [...about.skills];
+    newSkills[index] = { ...newSkills[index], ...updates };
+    setAbout({ ...about!, skills: newSkills });
+  };
+
+  const removeSkill = (index: number) => {
+    if (!about?.skills) return;
+    const newSkills = about.skills.filter((_, i) => i !== index);
+    setAbout({ ...about!, skills: newSkills });
+  };
+
+  // 预设技能模板
+  const skillTemplates = [
+    'JavaScript', 'TypeScript', 'React', 'Vue.js', 'Node.js',
+    'Python', 'Java', 'Go', 'Rust', 'C++',
+    'PostgreSQL', 'MongoDB', 'Redis', 'Docker', 'Kubernetes',
+    'AWS', 'Azure', 'GCP', 'Git', 'Linux',
+    'HTML/CSS', 'Tailwind CSS', 'Next.js', 'NestJS', 'Spring Boot',
+  ];
+
+  const addSkillFromTemplate = (name: string) => {
+    if (!about?.skills?.find(s => s.name === name)) {
+      setAbout({
+        ...about!,
+        skills: [...(about.skills || []), { name, level: 50, category: '技术' }],
+      });
     }
   };
 
@@ -52,7 +92,7 @@ export default function AboutPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="page-title">关于页面</h1>
-          <p className="text-gray-500 text-sm mt-1">编辑个人介绍和联系方式</p>
+          <p className="text-gray-500 text-sm mt-1">编辑个人介绍、技能和联系方式</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -109,6 +149,24 @@ export default function AboutPage() {
             </div>
           )}
 
+          {/* Skills preview */}
+          {about?.skills && about.skills.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 text-center">技能</h2>
+              <div className="flex flex-wrap justify-center gap-2">
+                {about.skills.map((skill, index) => (
+                  <span 
+                    key={index}
+                    className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm"
+                  >
+                    {skill.name}
+                    {skill.level && <span className="ml-1 text-gray-400">({skill.level}%)</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {about?.content && (
             <div className="prose max-w-none">
               <ReactMarkdown>{about.content}</ReactMarkdown>
@@ -137,25 +195,97 @@ export default function AboutPage() {
               </div>
 
               <div className="form-group mb-0">
-                <label className="label">头像 URL</label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="url"
-                    value={about?.avatar || ''}
-                    onChange={(e) => setAbout({ ...about!, avatar: e.target.value })}
-                    className="input flex-1"
-                    placeholder="https://..."
-                  />
-                  {about?.avatar && (
-                    <img
-                      src={about.avatar}
-                      alt="头像预览"
-                      className="w-12 h-12 rounded-full object-cover border"
-                    />
-                  )}
-                </div>
+                <label className="label">头像</label>
+                <ImageUpload
+                  value={about?.avatar || ''}
+                  onChange={(url) => setAbout({ ...about!, avatar: url })}
+                  accept="image/*"
+                  maxSize={2}
+                />
               </div>
             </div>
+          </div>
+
+          {/* Skills Management */}
+          <div className="card p-6">
+            <h2 className="text-base font-semibold text-gray-900 mb-5 flex items-center gap-2">
+              <Code className="w-5 h-5 text-gray-400" />
+              技能
+            </h2>
+            
+            {/* Skill templates */}
+            <div className="mb-4">
+              <p className="text-sm text-gray-500 mb-2">快速添加：</p>
+              <div className="flex flex-wrap gap-2">
+                {skillTemplates.slice(0, 10).map((name) => (
+                  <button
+                    key={name}
+                    onClick={() => addSkillFromTemplate(name)}
+                    disabled={about?.skills?.find(s => s.name === name)}
+                    className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${
+                      about?.skills?.find(s => s.name === name)
+                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-600'
+                    }`}
+                  >
+                    + {name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Skills list */}
+            <div className="space-y-3">
+              {about?.skills && about.skills.map((skill, index) => (
+                <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <input
+                    type="text"
+                    value={skill.name}
+                    onChange={(e) => updateSkill(index, { name: e.target.value })}
+                    className="input flex-1"
+                    placeholder="技能名称"
+                  />
+                  <input
+                    type="text"
+                    value={skill.category || ''}
+                    onChange={(e) => updateSkill(index, { category: e.target.value })}
+                    className="input w-28"
+                    placeholder="分类"
+                  />
+                  <div className="flex items-center gap-2 w-32">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={skill.level || 50}
+                      onChange={(e) => updateSkill(index, { level: parseInt(e.target.value) })}
+                      className="flex-1"
+                    />
+                    <span className="text-xs text-gray-500 w-8">{skill.level || 50}%</span>
+                  </div>
+                  <button
+                    onClick={() => removeSkill(index)}
+                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              
+              {(!about?.skills || about.skills.length === 0) && (
+                <div className="text-center py-6 text-gray-400 text-sm">
+                  暂无技能，点击下方按钮添加
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={addSkill}
+              className="mt-4 flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              添加技能
+            </button>
           </div>
 
           {/* Social Links */}

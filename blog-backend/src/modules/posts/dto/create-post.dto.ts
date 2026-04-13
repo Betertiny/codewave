@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean, IsArray, IsNumber, IsInt, MinLength, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsArray, IsNumber, IsInt, IsDateString, MinLength, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreatePostDto {
@@ -32,6 +32,11 @@ export class CreatePostDto {
   @IsBoolean()
   @IsOptional()
   published?: boolean;
+
+  @ApiPropertyOptional({ description: '定时发布时间 (YYYY-MM-DDTHH:mm:ss)', required: false })
+  @IsDateString()
+  @IsOptional()
+  scheduledAt?: string;
 
   @ApiPropertyOptional({ description: '分类ID' })
   @IsInt()

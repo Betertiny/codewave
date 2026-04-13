@@ -39,12 +39,47 @@ export default function LoginPage() {
 
       {/* Apple-style login card */}
       <div className="relative w-full max-w-md px-6">
-        {/* Apple logo */}
+        {/* CodeWave Waves logo */}
         <div className="flex justify-center mb-8">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center shadow-2xl">
-            <svg viewBox="0 0 24 24" className="w-10 h-10 text-white" fill="currentColor">
-              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-blue-500/30 relative overflow-hidden">
+            {/* Animated wave pattern */}
+            <svg viewBox="0 0 40 40" className="w-12 h-12 text-white relative z-10">
+              <defs>
+                <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="rgba(255,255,255,0.9)" />
+                  <stop offset="100%" stopColor="rgba(255,255,255,0.5)" />
+                </linearGradient>
+              </defs>
+              {/* Wave 1 */}
+              <path 
+                d="M5 25 Q10 20, 15 25 T25 25 T35 25" 
+                fill="none" 
+                stroke="url(#waveGrad)" 
+                strokeWidth="3" 
+                strokeLinecap="round"
+                className="animate-pulse"
+              />
+              {/* Wave 2 */}
+              <path 
+                d="M5 18 Q10 13, 15 18 T25 18 T35 18" 
+                fill="none" 
+                stroke="rgba(255,255,255,0.7)" 
+                strokeWidth="2.5" 
+                strokeLinecap="round"
+                style={{ animationDelay: '0.5s' }}
+              />
+              {/* Wave 3 */}
+              <path 
+                d="M5 31 Q10 26, 15 31 T25 31 T35 31" 
+                fill="none" 
+                stroke="rgba(255,255,255,0.5)" 
+                strokeWidth="2" 
+                strokeLinecap="round"
+                style={{ animationDelay: '1s' }}
+              />
             </svg>
+            {/* Glow effect */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
           </div>
         </div>
 

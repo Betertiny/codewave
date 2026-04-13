@@ -6,7 +6,10 @@ export interface Post {
   excerpt?: string;
   content: string;
   coverImage?: string;
+  viewCount: number;
   published: boolean;
+  scheduledAt?: string | null;
+  deletedAt?: string | null;
   categoryId?: number;
   category?: Category;
   tags?: Tag[];
@@ -21,6 +24,7 @@ export interface CreatePostDto {
   content: string;
   coverImage?: string;
   published?: boolean;
+  scheduledAt?: string | null;
   categoryId?: number;
   tagIds?: number[];
 }
@@ -62,6 +66,12 @@ export interface CreateCategoryDto {
 export interface UpdateCategoryDto extends Partial<CreateCategoryDto> {}
 
 // 关于页面类型
+export interface Skill {
+  name: string;
+  level?: number;
+  category?: string;
+}
+
 export interface About {
   title?: string;
   content?: string;
@@ -71,6 +81,7 @@ export interface About {
     twitter?: string;
     email?: string;
   };
+  skills?: Skill[];
 }
 
 // API 响应类型
